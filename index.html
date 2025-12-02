@@ -146,10 +146,12 @@
    <div id="absensiSection">
     <div style="background: white; border-radius: 16px; padding: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
      <h3 id="attendanceTitle" style="font-size: 22px; font-weight: bold; color: #1f2937; margin: 0 0 20px 0;">Absensi Siswa</h3><!-- Search -->
-     <div style="margin-bottom: 20px;"><input type="text" id="searchInput" placeholder="🔍 Cari nama siswa..." style="width: 100%; padding: 12px 16px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 16px;" oninput="filterStudents()">
+     <div style="margin-bottom: 20px;"><input type="text" id="searchInput" placeholder="�� Cari nama siswa..." style="width: 100%; padding: 12px 16px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 16px;" oninput="filterStudents()">
      </div><!-- Selected Count & Keterangan -->
      <div style="margin-bottom: 16px; padding: 12px; background: #eff6ff; border-radius: 8px;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;"><span style="color: #3b82f6; font-weight: 600;">Siswa Dipilih: <span id="selectedCount">0</span></span> <button onclick="clearSelection()" style="padding: 6px 12px; background: #ef4444; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">Bersihkan</button>
+      </div>
+      <div style="margin-bottom: 12px;"><label style="display: block; margin-bottom: 6px; color: #1f2937; font-size: 14px; font-weight: 600;">📅 Tanggal Absensi:</label> <input type="date" id="tanggalAbsenInput" style="width: 100%; padding: 10px 12px; border: 2px solid #3b82f6; border-radius: 8px; font-size: 14px; background: white; cursor: pointer;">
       </div>
       <div><label style="display: block; margin-bottom: 6px; color: #1f2937; font-size: 14px; font-weight: 600;">Keterangan Kehadiran:</label> <select id="keteranganSelect" style="width: 100%; padding: 10px 12px; border: 2px solid #3b82f6; border-radius: 8px; font-size: 14px; background: white; cursor: pointer;"> <option value="Sakit Dengan Surat Keterangan Dokter">Sakit Dengan Surat Keterangan Dokter</option> <option value="Sakit Tanpa Surat Keterangan Dokter">Sakit Tanpa Surat Keterangan Dokter</option> <option value="Izin Acara Keluarga">Izin Acara Keluarga</option> <option value="Izin Tidak Hadir Sekolah Dikarenakan Suatu Hal (Konfirmasi Walas)">Izin Tidak Hadir Sekolah Dikarenakan Suatu Hal (Konfirmasi Walas)</option> <option value="Hadir">Hadir</option> <option value="Hadir Kemudian Dispen">Hadir Kemudian Dispen</option> <option value="Hadir dan Terlambat">Hadir dan Terlambat</option> <option value="Tanpa Keterangan (Alpha)">Tanpa Keterangan (Alpha)</option> </select>
       </div>
@@ -641,18 +643,19 @@
       }
 
       const keterangan = document.getElementById('keteranganSelect').value;
+      const tanggalInput = document.getElementById('tanggalAbsenInput').value;
+      
+      if (!tanggalInput) {
+        showToast('Pilih tanggal absensi terlebih dahulu', true);
+        return;
+      }
+      
       const btn = document.getElementById('submitBtn');
       const originalText = btn.textContent;
       btn.disabled = true;
       btn.innerHTML = '<span class="loading"></span> Mengirim...';
 
-      const now = new Date();
-      const tanggalAbsen = now.toLocaleDateString('id-ID', {
-        timeZone: 'Asia/Jakarta',
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit'
-      }).split('/').reverse().join('-');
+      const tanggalAbsen = tanggalInput;
 
       let successCount = 0;
       let errorCount = 0;
@@ -1053,6 +1056,13 @@
     renderStudents();
     updateDateTime();
     setInterval(updateDateTime, 1000);
+    
+    // Set tanggal hari ini sebagai default
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    document.getElementById('tanggalAbsenInput').value = `${year}-${month}-${day}`;
   </script>
- <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9a7989c16166b5db',t:'MTc2NDY2NTAyMi4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9a799dc857b9051a',t:'MTc2NDY2NTg0Mi4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
