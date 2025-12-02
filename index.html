@@ -263,6 +263,12 @@
      </div>
     </div>
    </div>
+   <footer class="app-footer text-center">
+        <div class="container">
+        <strong>&copy; 2025 ABSENSI DIGITAL PERWALIAN XI TKJ - SMK Negeri 4 Jakarta (M. Syaeful Amin)</strong>
+        <strong> (M. Syaeful Amin)></strong>
+        </div>
+        </footer>
   </div>
   <script>
     const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyyuLJ2EaW_8BBelXSRtM9N6vPZN_fCsWaWMr3sKLr7XT-zzQpHMAf-CE1897Zd-2Uu/exec';
@@ -1064,6 +1070,74 @@
     const month = String(today.getMonth() + 1).padStart(2, '0');
     const day = String(today.getDate()).padStart(2, '0');
     document.getElementById('tanggalAbsenInput').value = `${year}-${month}-${day}`;
+
+   /* ====== Disable right-click and common DevTools shortcuts (added) ======
+            Note: this only raises the barrier for casual users. Determined users
+            can still view source / open DevTools. Keep that in mind.
+            */
+            (function disableInspectAndContextmenu(){
+                // Disable right-click context menu
+                document.addEventListener('contextmenu', function (e) {
+                    try { e.preventDefault(); } catch (err) {}
+                    return false;
+                }, true);
+
+                // Disable selection via keyboard shortcuts (optional)
+                document.addEventListener('selectstart', function(e){
+                    // allow selection normally, but block programmatic context-selection if desired
+                }, true);
+
+                // Block typical keys that open DevTools or view-source
+                document.addEventListener('keydown', function (e) {
+                    try {
+                        // F12
+                        if (e.key === 'F12') {
+                            e.preventDefault(); e.stopPropagation(); return false;
+                        }
+                        // Ctrl+Shift+I / J / C  (Chrome/Edge)
+                        if (e.ctrlKey && e.shiftKey && (e.key.toLowerCase() === 'i' || e.key.toLowerCase() === 'j' || e.key.toLowerCase() === 'c')) {
+                            e.preventDefault(); e.stopPropagation(); return false;
+                        }
+                        // Ctrl+U (view-source / view page source)
+                        if (e.ctrlKey && !e.shiftKey && e.key.toLowerCase() === 'u') {
+                            e.preventDefault(); e.stopPropagation(); return false;
+                        }
+                        // Ctrl+Shift+K (Firefox console)
+                        if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'k') {
+                            e.preventDefault(); e.stopPropagation(); return false;
+                        }
+                        // Ctrl+Shift+C (element inspector)
+                        if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'c') {
+                            e.preventDefault(); e.stopPropagation(); return false;
+                        }
+                        // Cmd on Mac equivalents
+                        if (navigator.platform && /Mac/i.test(navigator.platform)) {
+                            if (e.metaKey && e.altKey && e.key.toLowerCase() === 'i') { e.preventDefault(); e.stopPropagation(); return false; }
+                        }
+                    } catch (err) { /* ignore */ }
+                }, true);
+
+                // Also try to prevent opening via contextmenu on specific elements (images/links)
+                ['img','a','svg','button','input','textarea'].forEach(tag => {
+                    document.querySelectorAll(tag).forEach(el => {
+                        el.addEventListener('contextmenu', function(e){
+                            try { e.preventDefault(); } catch (err) {}
+                            return false;
+                        }, true);
+                    });
+                });
+
+                // Defensive: periodically re-attach contextmenu block (in case other scripts add handlers)
+                setInterval(() => {
+                    try {
+                        if (!document._ctx_block_attached) {
+                            document.addEventListener('contextmenu', function (e) { try { e.preventDefault(); } catch (z){}; return false; }, true);
+                            document._ctx_block_attached = true;
+                        }
+                    } catch(e){}
+                }, 3000);
+            })();
+  
   </script>
  <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9a799dc857b9051a',t:'MTc2NDY2NTg0Mi4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
