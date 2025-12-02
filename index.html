@@ -1,0 +1,827 @@
+<!doctype html>
+<html lang="id">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Absensi Siswa XI TJKT</title>
+  <script src="/_sdk/element_sdk.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    
+    * {
+      box-sizing: border-box;
+    }
+
+    .card {
+      transition: all 0.3s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+    }
+
+    .student-card {
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .student-card:hover {
+      transform: scale(1.02);
+    }
+
+    .student-card.selected {
+      border: 2px solid #10b981 !important;
+      background: #d1fae5 !important;
+    }
+
+    .toast {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: #10b981;
+      color: white;
+      padding: 16px 24px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      z-index: 1000;
+      animation: slideIn 0.3s ease;
+    }
+
+    .toast.error {
+      background: #ef4444;
+    }
+
+    @keyframes slideIn {
+      from {
+        transform: translateX(400px);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    .filter-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: #3b82f6;
+      color: white;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 14px;
+    }
+
+    .loading {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(255,255,255,.3);
+      border-radius: 50%;
+      border-top-color: white;
+      animation: spin 1s ease-in-out infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .stats-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 24px;
+      border-radius: 12px;
+      text-align: center;
+    }
+
+    .recap-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .recap-table th {
+      background: #3b82f6;
+      color: white;
+      padding: 12px;
+      text-align: left;
+      font-weight: 600;
+    }
+
+    .recap-table td {
+      padding: 12px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    .recap-table tr:hover {
+      background: #f9fafb;
+    }
+  </style>
+  <style>@view-transition { navigation: auto; }</style>
+  <script src="/_sdk/data_sdk.js" type="text/javascript"></script>
+ </head>
+ <body>
+  <div id="app" style="width: 100%; min-height: 100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px;"><!-- Header -->
+   <div style="background: white; border-radius: 16px; padding: 24px; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+    <div style="text-align: center;">
+     <h1 id="schoolName" style="font-size: 28px; font-weight: bold; color: #1f2937; margin: 0 0 8px 0;">SMK NEGERI 4 JAKARTA</h1>
+     <h2 id="className" style="font-size: 20px; color: #6b7280; margin: 0 0 16px 0;">REKAP ABSENSI KELAS XI TJKT</h2>
+     <div id="datetime" style="font-size: 16px; color: #3b82f6; font-weight: 600;"></div>
+    </div>
+   </div><!-- Tab Navigation -->
+   <div style="display: flex; gap: 12px; margin-bottom: 20px;"><button id="tabAbsensi" onclick="switchTab('absensi')" style="flex: 1; padding: 16px; background: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; color: #3b82f6; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"> 📝 Absensi </button> <button id="tabRekap" onclick="switchTab('rekap')" style="flex: 1; padding: 16px; background: rgba(255,255,255,0.3); border: none; border-radius: 12px; font-size: 16px; font-weight: 600; color: white; cursor: pointer;"> 📊 Rekap </button>
+   </div><!-- Absensi Section -->
+   <div id="absensiSection">
+    <div style="background: white; border-radius: 16px; padding: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+     <h3 id="attendanceTitle" style="font-size: 22px; font-weight: bold; color: #1f2937; margin: 0 0 20px 0;">Absensi Siswa</h3><!-- Search -->
+     <div style="margin-bottom: 20px;"><input type="text" id="searchInput" placeholder="🔍 Cari nama siswa..." style="width: 100%; padding: 12px 16px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 16px;" oninput="filterStudents()">
+     </div><!-- Selected Count & Keterangan -->
+     <div style="margin-bottom: 16px; padding: 12px; background: #eff6ff; border-radius: 8px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;"><span style="color: #3b82f6; font-weight: 600;">Siswa Dipilih: <span id="selectedCount">0</span></span> <button onclick="clearSelection()" style="padding: 6px 12px; background: #ef4444; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">Bersihkan</button>
+      </div>
+      <div><label style="display: block; margin-bottom: 6px; color: #1f2937; font-size: 14px; font-weight: 600;">Keterangan Kehadiran:</label> <select id="keteranganSelect" style="width: 100%; padding: 10px 12px; border: 2px solid #3b82f6; border-radius: 8px; font-size: 14px; background: white; cursor: pointer;"> <option value="Hadir">Hadir</option> <option value="Hadir dan Terlambat">Hadir dan Terlambat</option> <option value="Hadir Kemudian Dispen">Hadir Kemudian Dispen</option> <option value="Sakit Dengan Surat Keterangan Dokter">Sakit Dengan Surat Keterangan Dokter</option> <option value="Sakit Tanpa Surat Keterangan Dokter">Sakit Tanpa Surat Keterangan Dokter</option> <option value="Tanpa Keterangan (Alpha)">Tanpa Keterangan (Alpha)</option> </select>
+      </div>
+     </div><!-- Students Grid -->
+     <div id="studentsList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; margin-bottom: 20px; max-height: 400px; overflow-y: auto; padding: 4px;"></div><!-- Submit Button --> <button id="submitBtn" onclick="submitAbsensi()" style="width: 100%; padding: 16px; background: #3b82f6; color: white; border: none; border-radius: 8px; font-size: 18px; font-weight: 600; cursor: pointer; transition: all 0.3s;"> Kirim Absensi </button>
+    </div>
+   </div><!-- Rekap Section -->
+   <div id="rekapSection" style="display: none;"><!-- Tab Navigation for Rekap -->
+    <div style="display: flex; gap: 12px; margin-bottom: 20px;"><button id="tabRekapGlobal" onclick="switchRekapTab('global')" style="flex: 1; padding: 14px; background: white; border: none; border-radius: 12px; font-size: 15px; font-weight: 600; color: #3b82f6; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"> 📊 Rekap Global </button> <button id="tabRekapPerSiswa" onclick="switchRekapTab('persiswa')" style="flex: 1; padding: 14px; background: rgba(255,255,255,0.3); border: none; border-radius: 12px; font-size: 15px; font-weight: 600; color: white; cursor: pointer;"> 👥 Rekap Per Siswa </button>
+    </div><!-- Rekap Global -->
+    <div id="rekapGlobalSection">
+     <div style="background: white; border-radius: 16px; padding: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+      <h3 id="recapTitle" style="font-size: 22px; font-weight: bold; color: #1f2937; margin: 0 0 20px 0;">Rekap Absensi Global</h3><!-- Stats -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; margin-bottom: 24px;">
+       <div class="stats-card" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+        <div style="font-size: 32px; font-weight: bold;" id="totalHadir">
+         0
+        </div>
+        <div style="font-size: 14px; opacity: 0.9;">
+         ✅ Hadir
+        </div>
+       </div>
+       <div class="stats-card" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);">
+        <div style="font-size: 32px; font-weight: bold;" id="totalSakit">
+         0
+        </div>
+        <div style="font-size: 14px; opacity: 0.9;">
+         🏥 Sakit
+        </div>
+       </div>
+       <div class="stats-card" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);">
+        <div style="font-size: 32px; font-weight: bold;" id="totalIzin">
+         0
+        </div>
+        <div style="font-size: 14px; opacity: 0.9;">
+         📝 Izin
+        </div>
+       </div>
+       <div class="stats-card" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);">
+        <div style="font-size: 32px; font-weight: bold;" id="totalAlpha">
+         0
+        </div>
+        <div style="font-size: 14px; opacity: 0.9;">
+         ❌ Alpha
+        </div>
+       </div>
+       <div class="stats-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+        <div style="font-size: 32px; font-weight: bold;" id="totalAbsen">
+         0
+        </div>
+        <div style="font-size: 14px; opacity: 0.9;">
+         📊 Total
+        </div>
+       </div>
+      </div><!-- Filters -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
+       <div><label style="display: block; margin-bottom: 6px; color: #6b7280; font-size: 14px; font-weight: 600;">Filter Nama</label> <input type="text" id="filterNama" placeholder="Cari nama..." style="width: 100%; padding: 10px 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px;" oninput="applyFilters()">
+       </div>
+       <div><label style="display: block; margin-bottom: 6px; color: #6b7280; font-size: 14px; font-weight: 600;">Filter Tanggal</label> <input type="date" id="filterTanggal" style="width: 100%; padding: 10px 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px;" onchange="applyFilters()">
+       </div>
+      </div><!-- Active Filters -->
+      <div id="activeFilters" style="margin-bottom: 16px; display: flex; gap: 8px; flex-wrap: wrap;"></div><!-- Recap Table -->
+      <div style="overflow-x: auto; max-height: 500px; overflow-y: auto;">
+       <table class="recap-table">
+        <thead>
+         <tr>
+          <th>NIS</th>
+          <th>Nama Lengkap</th>
+          <th>JK</th>
+          <th>Tanggal Absensi</th>
+          <th>Keterangan</th>
+         </tr>
+        </thead>
+        <tbody id="rekapTableBody">
+         <tr>
+          <td colspan="5" style="text-align: center; padding: 40px; color: #9ca3af;">Belum ada data absensi</td>
+         </tr>
+        </tbody>
+       </table>
+      </div><!-- Refresh Button --> <button onclick="loadRekapData()" style="width: 100%; padding: 14px; background: #10b981; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 16px;"> 🔄 Refresh Data </button>
+     </div>
+    </div><!-- Rekap Per Siswa -->
+    <div id="rekapPerSiswaSection" style="display: none;">
+     <div style="background: white; border-radius: 16px; padding: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+      <h3 style="font-size: 22px; font-weight: bold; color: #1f2937; margin: 0 0 20px 0;">Rekap Absensi Per Siswa</h3><!-- Search Per Siswa -->
+      <div style="margin-bottom: 20px;"><input type="text" id="searchPerSiswa" placeholder="🔍 Cari nama siswa..." style="width: 100%; padding: 12px 16px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 16px;" oninput="filterPerSiswa()">
+      </div><!-- Rekap Per Siswa Table -->
+      <div style="overflow-x: auto; max-height: 600px; overflow-y: auto;">
+       <table class="recap-table">
+        <thead>
+         <tr>
+          <th>NIS</th>
+          <th>Nama Lengkap</th>
+          <th style="text-align: center;">✅ Hadir</th>
+          <th style="text-align: center;">🏥 Sakit</th>
+          <th style="text-align: center;">📝 Izin</th>
+          <th style="text-align: center;">❌ Alpha</th>
+          <th style="text-align: center;">📊 Total</th>
+         </tr>
+        </thead>
+        <tbody id="rekapPerSiswaBody">
+         <tr>
+          <td colspan="7" style="text-align: center; padding: 40px; color: #9ca3af;">Belum ada data absensi</td>
+         </tr>
+        </tbody>
+       </table>
+      </div>
+     </div>
+    </div>
+   </div>
+  </div>
+  <script>
+    const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyyuLJ2EaW_8BBelXSRtM9N6vPZN_fCsWaWMr3sKLr7XT-zzQpHMAf-CE1897Zd-2Uu/exec';
+    
+    const students = [
+      {nis: '17024', nama: 'AHMAD DANU ARJUNO SETIAWAN', jk: 'L'},
+      {nis: '17025', nama: 'AJI FIYAN AMINULLAH', jk: 'L'},
+      {nis: '17026', nama: 'ALUNA ZHAYURIE', jk: 'P'},
+      {nis: '17027', nama: 'ANDIK ARDIANSYAH', jk: 'L'},
+      {nis: '17028', nama: 'ARYA SENA MAULANA IBRAHIM', jk: 'P'},
+      {nis: '17029', nama: 'ASTY ZULFANI', jk: 'P'},
+      {nis: '17030', nama: 'AURA AULIA PRASTIKA DEWI', jk: 'P'},
+      {nis: '17031', nama: 'AYRA NUR RAHAYU', jk: 'P'},
+      {nis: '17032', nama: 'BRATA WIJAYA', jk: 'L'},
+      {nis: '17033', nama: 'DANIEL JULIANO ETIDENA', jk: 'L'},
+      {nis: '17034', nama: 'DUDE AHMAD ALFATHRIZKI', jk: 'L'},
+      {nis: '17035', nama: 'EVELYN NATALIA YERMIAS', jk: 'P'},
+      {nis: '17036', nama: 'FARID ADINATA', jk: 'L'},
+      {nis: '17037', nama: 'FATIN SAHIRA AZWA', jk: 'P'},
+      {nis: '17038', nama: 'GHINA SHAFA WAHYUNI', jk: 'P'},
+      {nis: '17039', nama: 'IRSYAD MAULANA AMSORI', jk: 'L'},
+      {nis: '17040', nama: 'KASIH ROSALINDA PARDEDE', jk: 'P'},
+      {nis: '17041', nama: 'MASDIANA PUTRI', jk: 'P'},
+      {nis: '17042', nama: 'MUHAMMAD BILAL AGUSTIAN', jk: 'L'},
+      {nis: '17043', nama: 'MUHAMMAD FATURRAHMAN', jk: 'L'},
+      {nis: '17044', nama: 'MUHAMMAD MEIKEL RIFAI', jk: 'L'},
+      {nis: '17045', nama: 'NAZWA RAHMATUL HASSANAH', jk: 'P'},
+      {nis: '17046', nama: 'NOLA VENYA LATIVAH', jk: 'P'},
+      {nis: '17047', nama: 'NURUL FADHILAH', jk: 'P'},
+      {nis: '17048', nama: 'POPPY SARI DEWI', jk: 'P'},
+      {nis: '17049', nama: 'PUTRI NOVIYANTI', jk: 'P'},
+      {nis: '17050', nama: 'QATRUNADA ASSYIFA', jk: 'P'},
+      {nis: '17051', nama: 'RAKHA ABDUL HANIF', jk: 'L'},
+      {nis: '17052', nama: 'REVAND RADITHYA LUTFI', jk: 'L'},
+      {nis: '17053', nama: 'RIFTO RAMDANI', jk: 'L'},
+      {nis: '17054', nama: 'SULISTYO NUR RAMADHAN PRIAMBODO', jk: 'L'},
+      {nis: '17055', nama: 'SULTAN MAHMUD', jk: 'L'},
+      {nis: '17056', nama: 'TANIA RISTIANTI PUTRI', jk: 'P'},
+      {nis: '17057', nama: 'WIRYAWAN DWI ATMAJA', jk: 'L'},
+      {nis: '17058', nama: 'WULAN NAYAH', jk: 'P'},
+      {nis: '17059', nama: 'WULAN PUSPITA DEWI', jk: 'P'}
+    ];
+
+    let selectedStudents = new Set();
+    let allRekapData = [];
+    let currentTab = 'absensi';
+    let currentRekapTab = 'global';
+    let perSiswaData = [];
+
+    const defaultConfig = {
+      school_name: 'SMK NEGERI 4 JAKARTA',
+      class_name: 'XI TJKT',
+      attendance_title: 'Absensi Siswa',
+      recap_title: 'Rekap Absensi'
+    };
+
+    function updateDateTime() {
+      const now = new Date();
+      const options = {
+        timeZone: 'Asia/Jakarta',
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      };
+      const formatted = now.toLocaleString('id-ID', options);
+      document.getElementById('datetime').textContent = formatted + ' WIB';
+    }
+
+    function renderStudents(studentsToRender = students) {
+      const container = document.getElementById('studentsList');
+      container.innerHTML = '';
+      
+      studentsToRender.forEach(student => {
+        const card = document.createElement('div');
+        card.className = 'student-card';
+        card.style.cssText = 'padding: 16px; border: 2px solid #e5e7eb; border-radius: 8px; background: white;';
+        
+        if (selectedStudents.has(student.nis)) {
+          card.classList.add('selected');
+        }
+        
+        const isSelected = selectedStudents.has(student.nis);
+        
+        card.innerHTML = `
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="width: 40px; height: 40px; background: ${student.jk === 'L' ? '#3b82f6' : '#ec4899'}; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 18px;">
+              ${student.jk}
+            </div>
+            <div style="flex: 1;">
+              <div style="font-weight: 600; color: #1f2937; font-size: 14px; margin-bottom: 2px;">${student.nama}</div>
+              <div style="color: #6b7280; font-size: 13px;">NIS: ${student.nis}</div>
+            </div>
+            ${isSelected ? '<div style="width: 30px; height: 30px; background: #10b981; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: bold;">✓</div>' : ''}
+          </div>
+        `;
+        
+        card.onclick = () => toggleStudent(student.nis);
+        container.appendChild(card);
+      });
+
+      updateSelectedCount();
+    }
+
+    function toggleStudent(nis) {
+      if (selectedStudents.has(nis)) {
+        selectedStudents.delete(nis);
+      } else {
+        selectedStudents.add(nis);
+      }
+      renderStudents(getCurrentFilteredStudents());
+    }
+
+    function getCurrentFilteredStudents() {
+      const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+      if (!searchTerm) return students;
+      return students.filter(s => s.nama.toLowerCase().includes(searchTerm));
+    }
+
+    function filterStudents() {
+      renderStudents(getCurrentFilteredStudents());
+    }
+
+    function clearSelection() {
+      selectedStudents.clear();
+      renderStudents(getCurrentFilteredStudents());
+    }
+
+    function updateSelectedCount() {
+      document.getElementById('selectedCount').textContent = selectedStudents.size;
+    }
+
+    function showToast(message, isError = false) {
+      const toast = document.createElement('div');
+      toast.className = 'toast' + (isError ? ' error' : '');
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      
+      setTimeout(() => {
+        toast.remove();
+      }, 3000);
+    }
+
+    async function submitAbsensi() {
+      if (selectedStudents.size === 0) {
+        showToast('Pilih minimal 1 siswa untuk diabsen', true);
+        return;
+      }
+
+      const keterangan = document.getElementById('keteranganSelect').value;
+      const btn = document.getElementById('submitBtn');
+      const originalText = btn.textContent;
+      btn.disabled = true;
+      btn.innerHTML = '<span class="loading"></span> Mengirim...';
+
+      const now = new Date();
+      const tanggalAbsen = now.toLocaleDateString('id-ID', {
+        timeZone: 'Asia/Jakarta',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      }).split('/').reverse().join('-');
+
+      let successCount = 0;
+      let errorCount = 0;
+
+      for (const nis of selectedStudents) {
+        const student = students.find(s => s.nis === nis);
+        if (!student) continue;
+
+        const formData = new URLSearchParams();
+        formData.append('NIS', student.nis);
+        formData.append('NAMA LENGKAP', student.nama);
+        formData.append('JENIS KELAMIN', student.jk);
+        formData.append('TANGGAL ABSEN', tanggalAbsen);
+        formData.append('KETERANGAN', keterangan);
+
+        try {
+          const response = await fetch(GOOGLE_SCRIPT_URL, {
+            method: 'POST',
+            body: formData,
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded'
+            }
+          });
+
+          if (response.ok) {
+            successCount++;
+          } else {
+            errorCount++;
+          }
+        } catch (error) {
+          errorCount++;
+        }
+      }
+
+      btn.disabled = false;
+      btn.textContent = originalText;
+
+      if (successCount > 0) {
+        showToast(`Berhasil mengirim ${successCount} data absensi dengan keterangan: ${keterangan}`);
+        selectedStudents.clear();
+        renderStudents(getCurrentFilteredStudents());
+      }
+
+      if (errorCount > 0) {
+        showToast(`${errorCount} data gagal dikirim`, true);
+      }
+    }
+
+    function switchTab(tab) {
+      currentTab = tab;
+      const absensiSection = document.getElementById('absensiSection');
+      const rekapSection = document.getElementById('rekapSection');
+      const tabAbsensi = document.getElementById('tabAbsensi');
+      const tabRekap = document.getElementById('tabRekap');
+
+      if (tab === 'absensi') {
+        absensiSection.style.display = 'block';
+        rekapSection.style.display = 'none';
+        tabAbsensi.style.background = 'white';
+        tabAbsensi.style.color = '#3b82f6';
+        tabAbsensi.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+        tabRekap.style.background = 'rgba(255,255,255,0.3)';
+        tabRekap.style.color = 'white';
+        tabRekap.style.boxShadow = 'none';
+      } else {
+        absensiSection.style.display = 'none';
+        rekapSection.style.display = 'block';
+        tabRekap.style.background = 'white';
+        tabRekap.style.color = '#3b82f6';
+        tabRekap.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+        tabAbsensi.style.background = 'rgba(255,255,255,0.3)';
+        tabAbsensi.style.color = 'white';
+        tabAbsensi.style.boxShadow = 'none';
+        loadRekapData();
+      }
+    }
+
+    async function loadRekapData() {
+      const refreshBtn = document.querySelector('button[onclick="loadRekapData()"]');
+      const originalText = refreshBtn.textContent;
+      refreshBtn.disabled = true;
+      refreshBtn.innerHTML = '<span class="loading"></span> Memuat data...';
+      
+      try {
+        const url = GOOGLE_SCRIPT_URL + '?timestamp=' + new Date().getTime() + '&callback=handleRekapData';
+        
+        const script = document.createElement('script');
+        script.src = url;
+        
+        window.handleRekapData = function(data) {
+          try {
+            if (!Array.isArray(data)) {
+              throw new Error('Data harus berupa array');
+            }
+            
+            allRekapData = data;
+            applyFilters();
+            
+            refreshBtn.disabled = false;
+            refreshBtn.textContent = originalText;
+            
+            if (data.length === 0) {
+              showToast('Belum ada data absensi');
+            } else {
+              showToast(`✅ Berhasil memuat ${data.length} data absensi`);
+            }
+            
+            script.remove();
+          } catch (error) {
+            refreshBtn.disabled = false;
+            refreshBtn.textContent = originalText;
+            showToast('❌ Gagal memproses data: ' + error.message, true);
+            script.remove();
+          }
+        };
+        
+        script.onerror = function() {
+          refreshBtn.disabled = false;
+          refreshBtn.textContent = originalText;
+          showToast('❌ Gagal memuat data dari server', true);
+          script.remove();
+        };
+        
+        document.body.appendChild(script);
+        
+        setTimeout(() => {
+          if (refreshBtn.disabled) {
+            refreshBtn.disabled = false;
+            refreshBtn.textContent = originalText;
+            showToast('❌ Timeout: Server tidak merespons', true);
+            if (script.parentNode) {
+              script.remove();
+            }
+          }
+        }, 15000);
+        
+      } catch (error) {
+        refreshBtn.disabled = false;
+        refreshBtn.textContent = originalText;
+        showToast('❌ Gagal memuat data: ' + error.message, true);
+        allRekapData = [];
+        renderRekapTable([]);
+      }
+    }
+
+    function applyFilters() {
+      const filterNama = document.getElementById('filterNama').value.toLowerCase();
+      const filterTanggal = document.getElementById('filterTanggal').value;
+
+      let filtered = [...allRekapData];
+
+      if (filterNama) {
+        filtered = filtered.filter(item => item.nama.toLowerCase().includes(filterNama));
+      }
+
+      if (filterTanggal) {
+        filtered = filtered.filter(item => item.tanggal === filterTanggal);
+      }
+
+      displayActiveFilters(filterNama, filterTanggal);
+      renderRekapTable(filtered);
+    }
+
+    function displayActiveFilters(nama, tanggal) {
+      const container = document.getElementById('activeFilters');
+      container.innerHTML = '';
+
+      if (nama) {
+        const badge = document.createElement('span');
+        badge.className = 'filter-badge';
+        badge.innerHTML = `Nama: ${nama} <span onclick="clearFilterNama()" style="cursor: pointer;">✕</span>`;
+        container.appendChild(badge);
+      }
+
+      if (tanggal) {
+        const badge = document.createElement('span');
+        badge.className = 'filter-badge';
+        badge.innerHTML = `Tanggal: ${tanggal} <span onclick="clearFilterTanggal()" style="cursor: pointer;">✕</span>`;
+        container.appendChild(badge);
+      }
+    }
+
+    function clearFilterNama() {
+      document.getElementById('filterNama').value = '';
+      applyFilters();
+    }
+
+    function clearFilterTanggal() {
+      document.getElementById('filterTanggal').value = '';
+      applyFilters();
+    }
+
+    function renderRekapTable(data) {
+      const tbody = document.getElementById('rekapTableBody');
+      
+      if (data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 40px; color: #9ca3af;">Tidak ada data yang sesuai filter</td></tr>';
+        updateStatistics(data);
+        return;
+      }
+
+      tbody.innerHTML = data.map(item => {
+        let keteranganBadge = '';
+        let badgeColor = '#10b981';
+        
+        const ket = item.keterangan || 'Hadir';
+        
+        if (ket.includes('Hadir') && !ket.includes('Terlambat') && !ket.includes('Dispen')) {
+          badgeColor = '#10b981';
+        } else if (ket.includes('Terlambat')) {
+          badgeColor = '#f59e0b';
+        } else if (ket.includes('Dispen')) {
+          badgeColor = '#3b82f6';
+        } else if (ket.includes('Sakit')) {
+          badgeColor = '#8b5cf6';
+        } else if (ket.includes('Alpha') || ket.includes('Tanpa Keterangan')) {
+          badgeColor = '#ef4444';
+        }
+        
+        keteranganBadge = `<span style="display: inline-block; padding: 4px 12px; background: ${badgeColor}; color: white; border-radius: 12px; font-size: 12px; font-weight: 600;">${ket}</span>`;
+        
+        return `
+          <tr>
+            <td>${item.nis}</td>
+            <td>${item.nama}</td>
+            <td>${item.jk}</td>
+            <td>${item.tanggal}</td>
+            <td>${keteranganBadge}</td>
+          </tr>
+        `;
+      }).join('');
+
+      updateStatistics(data);
+    }
+
+    function updateStatistics(data) {
+      let totalHadir = 0;
+      let totalSakit = 0;
+      let totalIzin = 0;
+      let totalAlpha = 0;
+
+      data.forEach(item => {
+        const ket = item.keterangan || 'Hadir';
+        
+        if (ket.includes('Hadir')) {
+          totalHadir++;
+        } else if (ket.includes('Sakit')) {
+          totalSakit++;
+        } else if (ket.includes('Dispen')) {
+          totalIzin++;
+        } else if (ket.includes('Alpha') || ket.includes('Tanpa Keterangan')) {
+          totalAlpha++;
+        }
+      });
+
+      document.getElementById('totalHadir').textContent = totalHadir;
+      document.getElementById('totalSakit').textContent = totalSakit;
+      document.getElementById('totalIzin').textContent = totalIzin;
+      document.getElementById('totalAlpha').textContent = totalAlpha;
+      document.getElementById('totalAbsen').textContent = data.length;
+    }
+
+    function switchRekapTab(tab) {
+      currentRekapTab = tab;
+      const globalSection = document.getElementById('rekapGlobalSection');
+      const perSiswaSection = document.getElementById('rekapPerSiswaSection');
+      const tabGlobal = document.getElementById('tabRekapGlobal');
+      const tabPerSiswa = document.getElementById('tabRekapPerSiswa');
+
+      if (tab === 'global') {
+        globalSection.style.display = 'block';
+        perSiswaSection.style.display = 'none';
+        tabGlobal.style.background = 'white';
+        tabGlobal.style.color = '#3b82f6';
+        tabGlobal.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+        tabPerSiswa.style.background = 'rgba(255,255,255,0.3)';
+        tabPerSiswa.style.color = 'white';
+        tabPerSiswa.style.boxShadow = 'none';
+      } else {
+        globalSection.style.display = 'none';
+        perSiswaSection.style.display = 'block';
+        tabPerSiswa.style.background = 'white';
+        tabPerSiswa.style.color = '#3b82f6';
+        tabPerSiswa.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+        tabGlobal.style.background = 'rgba(255,255,255,0.3)';
+        tabGlobal.style.color = 'white';
+        tabGlobal.style.boxShadow = 'none';
+        calculatePerSiswaStats();
+      }
+    }
+
+    function calculatePerSiswaStats() {
+      const statsMap = new Map();
+
+      students.forEach(student => {
+        statsMap.set(student.nis, {
+          nis: student.nis,
+          nama: student.nama,
+          hadir: 0,
+          sakit: 0,
+          izin: 0,
+          alpha: 0,
+          total: 0
+        });
+      });
+
+      allRekapData.forEach(item => {
+        const stats = statsMap.get(item.nis);
+        if (stats) {
+          const ket = item.keterangan || 'Hadir';
+          
+          if (ket.includes('Hadir')) {
+            stats.hadir++;
+          } else if (ket.includes('Sakit')) {
+            stats.sakit++;
+          } else if (ket.includes('Dispen')) {
+            stats.izin++;
+          } else if (ket.includes('Alpha') || ket.includes('Tanpa Keterangan')) {
+            stats.alpha++;
+          }
+          stats.total++;
+        }
+      });
+
+      perSiswaData = Array.from(statsMap.values());
+      renderPerSiswaTable(perSiswaData);
+    }
+
+    function renderPerSiswaTable(data) {
+      const tbody = document.getElementById('rekapPerSiswaBody');
+      
+      const filteredData = data.filter(item => item.total > 0);
+      
+      if (filteredData.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px; color: #9ca3af;">Belum ada data absensi</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = filteredData.map(item => {
+        return `
+          <tr>
+            <td>${item.nis}</td>
+            <td>${item.nama}</td>
+            <td style="text-align: center;"><span style="display: inline-block; padding: 6px 12px; background: #10b981; color: white; border-radius: 8px; font-weight: 600;">${item.hadir}</span></td>
+            <td style="text-align: center;"><span style="display: inline-block; padding: 6px 12px; background: #8b5cf6; color: white; border-radius: 8px; font-weight: 600;">${item.sakit}</span></td>
+            <td style="text-align: center;"><span style="display: inline-block; padding: 6px 12px; background: #3b82f6; color: white; border-radius: 8px; font-weight: 600;">${item.izin}</span></td>
+            <td style="text-align: center;"><span style="display: inline-block; padding: 6px 12px; background: #ef4444; color: white; border-radius: 8px; font-weight: 600;">${item.alpha}</span></td>
+            <td style="text-align: center;"><span style="display: inline-block; padding: 6px 12px; background: #667eea; color: white; border-radius: 8px; font-weight: 600;">${item.total}</span></td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function filterPerSiswa() {
+      const searchTerm = document.getElementById('searchPerSiswa').value.toLowerCase();
+      
+      if (!searchTerm) {
+        renderPerSiswaTable(perSiswaData);
+        return;
+      }
+
+      const filtered = perSiswaData.filter(item => 
+        item.nama.toLowerCase().includes(searchTerm) || 
+        item.nis.includes(searchTerm)
+      );
+      
+      renderPerSiswaTable(filtered);
+    }
+
+    async function onConfigChange(config) {
+      document.getElementById('schoolName').textContent = config.school_name || defaultConfig.school_name;
+      document.getElementById('className').textContent = 'REKAP ABSENSI KELAS ' + (config.class_name || defaultConfig.class_name);
+      document.getElementById('attendanceTitle').textContent = config.attendance_title || defaultConfig.attendance_title;
+      document.getElementById('recapTitle').textContent = config.recap_title || defaultConfig.recap_title;
+    }
+
+    if (window.elementSdk) {
+      window.elementSdk.init({
+        defaultConfig: defaultConfig,
+        onConfigChange: onConfigChange,
+        mapToCapabilities: (config) => ({
+          recolorables: [],
+          borderables: [],
+          fontEditable: undefined,
+          fontSizeable: undefined
+        }),
+        mapToEditPanelValues: (config) => new Map([
+          ['school_name', config.school_name || defaultConfig.school_name],
+          ['class_name', config.class_name || defaultConfig.class_name],
+          ['attendance_title', config.attendance_title || defaultConfig.attendance_title],
+          ['recap_title', config.recap_title || defaultConfig.recap_title]
+        ])
+      });
+    }
+
+    renderStudents();
+    updateDateTime();
+    setInterval(updateDateTime, 1000);
+  </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9a793855964a145b',t:'MTc2NDY2MTY4Ny4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
